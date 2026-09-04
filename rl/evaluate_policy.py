@@ -19,6 +19,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Visualize a trained Aero Hand PPO policy")
     parser.add_argument("--model", type=pathlib.Path, default=pathlib.Path("rl/checkpoints/aero_grasp_ppo"))
     parser.add_argument("--episodes", type=int, default=5)
+    parser.add_argument(
+        "--auto-close",
+        action="store_true",
+        help="完成指定回合后自动关闭窗口；默认保持窗口打开",
+    )
     args = parser.parse_args()
 
     # 兼容绝对路径、当前目录相对路径和 rl 目录相对路径。
@@ -36,9 +41,17 @@ def main() -> None:
 
     # 输出加载信息，并启动 MuJoCo 被动查看器。
     print(f"Loaded policy: {model_path}")
-    print("Close the MuJoCo window to stop playback.")
+    print("回放完成后窗口会保持打开，请手动关闭 MuJoCo 窗口退出。")
     with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
-        while viewer.is_running() and episode < args.episodes:
+        while viewer.is_running():
+            # 达到目标回合后停止推进物理，只保持窗口和最后画面，方便检查。
+            if episode >= args.episodes:
+                viewer.sync()
+                if args.auto_close:
+                    break
+                time.sleep(0.02)
+                continue
+
             # 策略根据当前观测生成 8 维腱绳、拇指和整手抬升动作。
             action, _ = policy.predict(observation, deterministic=True)
             observation, reward, terminated, truncated, info = env.step(action)
@@ -50,6 +63,9 @@ def main() -> None:
                 if episode < args.episodes:
                     # 用不同种子重置球体的横向初始位置。
                     observation, _ = env.reset(seed=episode)
+                elif args.auto_close:
+                    # 只有显式指定 --auto-close 时才自动退出回放。
+                    break
             # 给查看器留出刷新时间，避免回放速度过快。
             time.sleep(0.005)
     # 关闭环境并释放资源。
