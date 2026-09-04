@@ -1,15 +1,20 @@
-﻿<mujoco model="Tetheria_Aero_Hand_Open_RightHand">
+﻿<!-- TetherIA Aero Hand 右手模型：掌面姿态固定，只允许整手沿 Z 轴抬升。 -->
+<mujoco model="Tetheria_Aero_Hand_Open_RightHand">
+  <!-- 使用弧度制，并从项目模型目录读取 STL 网格。 -->
   <compiler angle="radian" meshdir="../models/tetheria_aero_hand_open/assets/"/>
 
+  <!-- 物理积分参数：时间步长 0.01 秒，使用 Euler 积分器。 -->
   <option timestep="0.01" integrator="Euler" iterations="5" ls_iterations="8">
     <flag eulerdamp="disable"/>
   </option>
 
+  <!-- 自定义接触上限，避免手指与球体接触时超过 MuJoCo 缓冲区。 -->
   <custom>
     <numeric data="30" name="max_contact_points"/>
     <numeric data="12" name="max_geom_pairs"/>
   </custom>
 
+  <!-- 材质和手掌、手指、拇指的 STL 网格资源。 -->
   <asset>
     <material name="black" rgba="0.2 0.2 0.2 1"/>
     <material name="gray" rgba="0.5 0.5 0.5 1"/>
@@ -44,6 +49,7 @@
     <mesh name="right_thumb_tip_link" content_type="model/stl" file="right_thumb_tip_link.STL"/>
   </asset>
 
+  <!-- 默认物理属性：碰撞摩擦、指尖几何体、关节阻尼和腱绳参数。 -->
   <default>
     <default class="tetheria_rh">
       <geom group="3" friction="0.2" solref="0.02 1.5" solimp="0.9 0.99 0.001"/>
@@ -59,7 +65,7 @@
           quat="0.708101 0.705072 -0.0294902 -0.024426" type="box" friction="0.7 0.05 0.0002" rgba=".5 .5 .5 .3"/>
       </default>
 
-      <!-- armature = rotor inertia * gear ratio^2 = 0.371* 1e-7 * 205*205 = 0.001559127 -->
+      <!-- 关节默认转动惯量、阻尼、摩擦损失和电机等效惯量。 -->
       <joint axis="0 0 -1" damping="0.02" armature="0.001559127" frictionloss="0.02"/>
 
       <default class="rot">
@@ -91,7 +97,7 @@
         <position ctrlrange="-0.1 1.3"/>
       </default>
 
-      <!-- spring tendon -->
+      <!-- 三组弹簧腱和两组弯曲腱的刚度、可视化宽度等默认值。 -->
       <default class="cmc_spring">
         <tendon stiffness="1897" springlength="0.013" width="0.001" rgba="0 0.5 0.5 1" group="2"/>
       </default>
@@ -114,8 +120,9 @@
     </default>
   </default>
 
+  <!-- 碰撞过滤：避免掌部、安装座和指根发生不必要的自碰撞。 -->
   <contact>
-    <!-- filter the palm from all other finger bodies except the tips -->
+    <!-- 掌部只允许与指尖区域产生任务相关的接触。 -->
     <exclude body1="palm" body2="right_t_link"/>
     <exclude body1="palm" body2="right_index_f_link"/>
     <exclude body1="palm" body2="right_middle_f_link"/>
@@ -134,7 +141,7 @@
     <exclude body1="palm" body2="right_ring_middle_link"/>
     <exclude body1="palm" body2="right_pinky_middle_link"/>
 
-    <!-- filter the mount from all finger bodies except the tips -->
+    <!-- 安装座过滤大部分手指刚体的碰撞。 -->
 
     <exclude body1="tetheria_mount" body2="palm"/>
 
@@ -162,7 +169,7 @@
     <exclude body1="tetheria_mount" body2="right_ring_distal_link"/>
     <exclude body1="tetheria_mount" body2="right_pinky_distal_link"/>
 
-    <!-- none of the base fingertip geoms can touch each other -->
+    <!-- 基部指尖之间不产生自碰撞。 -->
     <exclude body1="right_t_link" body2="right_index_f_link"/>
     <exclude body1="right_t_link" body2="right_middle_f_link"/>
     <exclude body1="right_t_link" body2="right_ring_f_link"/>
@@ -178,10 +185,11 @@
     <exclude body1="right_ring_f_link" body2="right_pinky_f_link"/>
   </contact>
 
+  <!-- 世界坐标中的光源、安装座、掌部、五指和拇指刚体树。 -->
   <worldbody>
     <light name="spotlight" mode="targetbodycom" target="palm" pos="3 0 4"/>
     <body name="tetheria_mount" pos="0 0 -0.03" quat="1 0 0 0" childclass="tetheria_rh">
-      <!-- The palm orientation is fixed; this slide joint is the only whole-hand motion. -->
+      <!-- 掌面方向固定；hand_lift 是整只手唯一的平移关节。 -->
       <joint name="hand_lift" type="slide" axis="0 0 1" range="0 0.25" damping="2"/>
       <geom name="tetheria_mount_visual" pos="0.04 0.01 -0.012" quat="0.4085 -0.5730 0.5730 -0.4085" class="visual"
         mesh="tetheria_mount"/>
@@ -225,7 +233,7 @@
           <inertial pos="0 0 0.0017" mass="0.000169697" diaginertia="1.29009e-09 1.29009e-09 7.6801e-10"/>
           <geom type="mesh" mesh="right_index_f_link" class="visual"/>
 
-          <!-- Spring 1 first link part -->
+          <!-- 第一指节的第 1 组回弹弹簧路径。 -->
           <site name="if_f_spring1_s1" pos="0 0.005 0.0" group="4" size="0.0005"/>
           <geom name="if_f_spring1_g0" rgba="0 1 0 1" size="0.003 0.005" pos="0 0 0.0029" quat="0.707 0 -0.707 0"
             type="cylinder" class="visual" group="2"/>
@@ -237,7 +245,7 @@
             <geom type="mesh" mesh="right_index_proximal_link" class="visual"/>
             <geom size="0.006 0.006 0.013" pos="0 -0.003 0.019" type="box"/>
 
-            <!-- Tendon 0 proximal part -->
+            <!-- 近端指节的第 0 号弯曲腱路径。 -->
             <site name="if_proximal_tendon0_s0" pos="0 -0.0110 0.0095" group="4" size="0.0001"/>
             <geom name="if_proximal_tendon0_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 -0.0075 0.0095"
               quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
@@ -250,17 +258,17 @@
             <site name="if_proximal_tendon0_s3" pos="0 -0.0025 0.03" group="4" size="0.0001"/>
             <site name="if_proximal_tendon0_s4" pos="0 -0.0025 0.0333" group="4" size="0.0001"/>
 
-            <!-- Tendon 1 proximal part -->
+            <!-- 近端指节的第 1 号联动腱路径。 -->
             <geom name="if_proximal_tendon1_g0" rgba="0 1 0 1" size="0.003 0.005" pos="0 -0.0018 0.043"
               quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
             <site name="if_proximal_tendon1_s0" pos="0 -0.0048 0.040" group="4" size="0.0001"/>
             <site name="if_proximal_tendon1_s1" pos="0 0.0012 0.035" group="4" size="0.0001"/>
 
-            <!-- Spring 0 proximal part -->
+            <!-- 近端指节的第 0 组回弹弹簧路径。 -->
             <site name="if_proximal_spring0_s0" pos="0 0.0012 0.011" group="4" size="0.0005"/>
             <site name="if_proximal_spring0_s1" pos="0 0.0012 0.04" group="4" size="0.0005"/>
 
-            <!-- Spring 1 proximal part -->
+            <!-- 近端指节的第 1 组回弹弹簧路径。 -->
             <site name="if_proximal_spring1_s0" pos="0 0.003 0.004" group="4" size="0.0005"/>
 
             <body name="right_index_middle_link" pos="0 -0.0014554 0.043" quat="0.999962 0.00872639 0 0">
@@ -270,7 +278,7 @@
               <geom type="mesh" mesh="right_index_middle_link" class="visual"/>
               <geom size="0.006 0.005 0.010" pos="0 -0.001 0.006" type="box"/>
 
-              <!-- Spring 0 middle part -->
+              <!-- 中间指节的第 0 组回弹弹簧路径。 -->
               <site name="if_middle_spring0_s0" pos="0 0.004 0.003" group="4" size="0.0005"/>
 
               <body name="right_index_distal_link" pos="0 0.00036966 0.021997" quat="1 0.00052935 0 0">
@@ -283,13 +291,13 @@
                 <geom name="if_tip" size="0.005 0.005 0.01" pos="0 -0.003 0.014" type="box"/>
                 <site name="if_tip" pos="0 -0.003 0.023" group="4"/>
 
-                <!-- Tendon 0 distal part -->
+                <!-- 远端指节的第 0 号腱路径。 -->
                 <site name="if_dip_tendon0_s0" pos="0 -0.0086 0.003" group="4" size="0.0001"/>
                 <geom name="if_dip_tendon0_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 -0.006 0.002"
                   quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
                 <site name="if_dip_tendon0_s2" pos="0 -0.0015 0.0075" group="4" size="0.0001"/>
 
-                <!-- Tendon 1 distal part -->
+                <!-- 远端指节的第 1 号腱路径。 -->
                 <site name="if_dip_tendon1_s0" pos="0 0.0025 0.015" group="4" size="0.0001"/>
                 <geom name="if_dip_tendon1_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 0 0" quat="0.707 0 -0.707 0"
                   type="cylinder" class="visual" group="2"/>
@@ -303,7 +311,7 @@
           <inertial pos="0 0 0.0017" mass="0.000169697" diaginertia="1.29009e-09 1.29009e-09 7.6801e-10"/>
           <geom type="mesh" mesh="right_middle_f_link" class="visual"/>
 
-          <!-- Spring 1 first link part -->
+          <!-- 第一指节的第 1 组回弹弹簧路径。 -->
           <site name="mf_f_spring1_s1" pos="0 0.005 0.0" group="4" size="0.0005"/>
           <geom name="mf_f_spring1_g0" rgba="0 1 0 1" size="0.003 0.005" pos="0 0 0.0029" quat="0.707 0 -0.707 0"
             type="cylinder" class="visual" group="2"/>
@@ -314,7 +322,7 @@
             <geom type="mesh" mesh="right_middle_proximal_link" class="visual"/>
             <geom size="0.006 0.006 0.013" pos="0 -0.003 0.019" type="box"/>
 
-            <!-- Tendon 0 proximal part -->
+            <!-- 近端指节的第 0 号弯曲腱路径。 -->
             <site name="mf_proximal_tendon0_s0" pos="0 -0.0110 0.0125" group="4" size="0.0001"/>
             <geom name="mf_proximal_tendon0_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 -0.0075 0.0095"
               quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
@@ -326,17 +334,17 @@
               quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
             <site name="mf_proximal_tendon0_s3" pos="0 -0.0025 0.0333" group="4" size="0.0001"/>
             <site name="mf_proximal_tendon0_s4" pos="0 -0.0025 0.0333" group="4" size="0.0001"/>
-            <!-- Tendon 1 proximal part -->
+            <!-- 近端指节的第 1 号联动腱路径。 -->
             <geom name="mf_proximal_tendon1_g0" rgba="0 1 0 1" size="0.003 0.005" pos="0 -0.0018 0.043"
               quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
             <site name="mf_proximal_tendon1_s0" pos="0 -0.0048 0.040" group="4" size="0.0001"/>
             <site name="mf_proximal_tendon1_s1" pos="0 0.0012 0.035" group="4" size="0.0001"/>
 
-            <!-- Spring 0 proximal part -->
+            <!-- 近端指节的第 0 组回弹弹簧路径。 -->
             <site name="mf_proximal_spring0_s0" pos="0 0.0012 0.011" group="4" size="0.0005"/>
             <site name="mf_proximal_spring0_s1" pos="0 0.0012 0.04" group="4" size="0.0005"/>
 
-            <!-- Spring 1 proximal part -->
+            <!-- 近端指节的第 1 组回弹弹簧路径。 -->
             <site name="mf_proximal_spring1_s0" pos="0 0.003 0.004" group="4" size="0.0005"/>
             <body name="right_middle_middle_link" pos="0 -0.0014554 0.043" quat="0.999962 0.00872639 0 0">
               <inertial pos="9.42153e-09 -0.00110516 0.00939618" quat="0.706832 -0.0191899 0.0192034 0.706861"
@@ -345,7 +353,7 @@
               <geom type="mesh" mesh="right_middle_middle_link" class="visual"/>
               <geom size="0.006 0.005 0.010" pos="0 -0.001 0.006" type="box"/>
 
-              <!-- Spring 0 middle part -->
+              <!-- 中间指节的第 0 组回弹弹簧路径。 -->
               <site name="mf_middle_spring0_s0" pos="0 0.004 0.003" group="4" size="0.0005"/>
 
               <body name="right_middle_distal_link" pos="0 0.00036966 0.021997" quat="1 0.00052935 0 0">
@@ -358,13 +366,13 @@
                 <geom name="mf_tip" size="0.005 0.005 0.01" pos="0 -0.003 0.014" type="box"/>
                 <site name="mf_tip" pos="0 -0.003 0.023" group="4"/>
 
-                <!-- Tendon 0 distal part -->
+                <!-- 远端指节的第 0 号腱路径。 -->
                 <site name="mf_dip_tendon0_s0" pos="0 -0.0086 0.003" group="4" size="0.0001"/>
                 <geom name="mf_dip_tendon0_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 -0.006 0.002"
                   quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
                 <site name="mf_dip_tendon0_s2" pos="0 -0.0015 0.0075" group="4" size="0.0001"/>
 
-                <!-- Tendon 1 distal part -->
+                <!-- 远端指节的第 1 号腱路径。 -->
                 <site name="mf_dip_tendon1_s0" pos="0 0.0025 0.015" group="4" size="0.0001"/>
                 <geom name="mf_dip_tendon1_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 0 0" quat="0.707 0 -0.707 0"
                   type="cylinder" class="visual" group="2"/>
@@ -379,7 +387,7 @@
           <inertial pos="0 0 0.0017" mass="0.000169697" diaginertia="1.29009e-09 1.29009e-09 7.6801e-10"/>
           <geom type="mesh" mesh="right_ring_f_link" class="visual"/>
 
-          <!-- Spring 1 first link part -->
+          <!-- 第一指节的第 1 组回弹弹簧路径。 -->
           <site name="rf_f_spring1_s1" pos="0 0.005 0.0" group="4" size="0.0005"/>
           <geom name="rf_f_spring1_g0" rgba="0 1 0 1" size="0.003 0.005" pos="0 0 0.0029" quat="0.707 0 -0.707 0"
             type="cylinder" class="visual" group="2"/>
@@ -390,7 +398,7 @@
             <geom type="mesh" mesh="right_ring_proximal_link" class="visual"/>
             <geom size="0.006 0.006 0.013" pos="0 -0.003 0.019" type="box"/>
 
-            <!-- Tendon 0 proximal part -->
+            <!-- 近端指节的第 0 号弯曲腱路径。 -->
             <site name="rf_proximal_tendon0_s0" pos="0 -0.0110 0.0095" group="4" size="0.0001"/>
             <geom name="rf_proximal_tendon0_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 -0.0075 0.0095"
               quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
@@ -403,17 +411,17 @@
             <site name="rf_proximal_tendon0_s3" pos="0 -0.0025 0.0333" group="4" size="0.0001"/>
             <site name="rf_proximal_tendon0_s4" pos="0 -0.0025 0.0333" group="4" size="0.0001"/>
 
-            <!-- Tendon 1 proximal part -->
+            <!-- 近端指节的第 1 号联动腱路径。 -->
             <geom name="rf_proximal_tendon1_g0" rgba="0 1 0 1" size="0.003 0.005" pos="0 -0.0018 0.043"
               quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
             <site name="rf_proximal_tendon1_s0" pos="0 -0.0048 0.040" group="4" size="0.0001"/>
             <site name="rf_proximal_tendon1_s1" pos="0 0.0012 0.035" group="4" size="0.0001"/>
 
-            <!-- Spring 0 proximal part -->
+            <!-- 近端指节的第 0 组回弹弹簧路径。 -->
             <site name="rf_proximal_spring0_s0" pos="0 0.0012 0.011" group="4" size="0.0005"/>
             <site name="rf_proximal_spring0_s1" pos="0 0.0012 0.04" group="4" size="0.0005"/>
 
-            <!-- Spring 1 proximal part -->
+            <!-- 近端指节的第 1 组回弹弹簧路径。 -->
             <site name="rf_proximal_spring1_s0" pos="0 0.003 0.004" group="4" size="0.0005"/>
 
             <body name="right_ring_middle_link" pos="0 -0.0014554 0.043" quat="0.999962 0.00872639 0 0">
@@ -423,7 +431,7 @@
               <geom type="mesh" mesh="right_ring_middle_link" class="visual"/>
               <geom size="0.006 0.005 0.010" pos="0 -0.001 0.006" type="box"/>
 
-              <!-- Spring 0 middle part -->
+              <!-- 中间指节的第 0 组回弹弹簧路径。 -->
               <site name="rf_middle_spring0_s0" pos="0 0.004 0.003" group="4" size="0.0005"/>
 
               <body name="right_ring_distal_link" pos="0 0.00036966 0.021997" quat="1 0.00052935 0 0">
@@ -436,13 +444,13 @@
                 <geom name="rf_tip" size="0.005 0.005 0.01" pos="0 -0.003 0.014" type="box"/>
                 <site name="rf_tip" pos="0 -0.003 0.023" group="4"/>
 
-                <!-- Tendon 0 distal part -->
+                <!-- 远端指节的第 0 号腱路径。 -->
                 <site name="rf_dip_tendon0_s0" pos="0 -0.0086 0.003" group="4" size="0.0001"/>
                 <geom name="rf_dip_tendon0_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 -0.006 0.002"
                   quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
                 <site name="rf_dip_tendon0_s2" pos="0 -0.0015 0.0075" group="4" size="0.0001"/>
 
-                <!-- Tendon 1 distal part -->
+                <!-- 远端指节的第 1 号腱路径。 -->
                 <site name="rf_dip_tendon1_s0" pos="0 0.0025 0.015" group="4" size="0.0001"/>
                 <geom name="rf_dip_tendon1_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 0 0" quat="0.707 0 -0.707 0"
                   type="cylinder" class="visual" group="2"/>
@@ -457,7 +465,7 @@
           <inertial pos="0 0 0.0017" mass="0.000169697" diaginertia="1.29009e-09 1.29009e-09 7.6801e-10"/>
           <geom type="mesh" mesh="right_pinky_f_link" class="visual"/>
 
-          <!-- Spring 1 first link part -->
+          <!-- 第一指节的第 1 组回弹弹簧路径。 -->
           <site name="pf_f_spring1_s1" pos="0 0.005 0.0" group="4" size="0.0001"/>
           <geom name="pf_f_spring1_g0" rgba="0 1 0 1" size="0.003 0.005" pos="0 0 0.0029" quat="0.707 0 -0.707 0"
             type="cylinder" class="visual" group="2"/>
@@ -468,7 +476,7 @@
             <geom type="mesh" mesh="right_pinky_proximal_link" class="visual"/>
             <geom size="0.006 0.006 0.013" pos="0 -0.003 0.019" type="box"/>
 
-            <!-- Tendon 0 proximal part -->
+            <!-- 近端指节的第 0 号弯曲腱路径。 -->
             <site name="pf_proximal_tendon0_s0" pos="0 -0.0110 0.0095" group="4" size="0.0001"/>
             <geom name="pf_proximal_tendon0_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 -0.0075 0.0095"
               quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
@@ -481,17 +489,17 @@
             <site name="pf_proximal_tendon0_s3" pos="0 -0.0025 0.0333" group="4" size="0.0001"/>
             <site name="pf_proximal_tendon0_s4" pos="0 -0.0025 0.0333" group="4" size="0.0001"/>
 
-            <!-- Tendon 1 proximal part -->
+            <!-- 近端指节的第 1 号联动腱路径。 -->
             <geom name="pf_proximal_tendon1_g0" rgba="0 1 0 1" size="0.003 0.005" pos="0 -0.0018 0.043"
               quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
             <site name="pf_proximal_tendon1_s0" pos="0 -0.0048 0.040" group="4" size="0.0001"/>
             <site name="pf_proximal_tendon1_s1" pos="0 0.0012 0.035" group="4" size="0.0001"/>
 
-            <!-- Spring 0 proximal part -->
+            <!-- 近端指节的第 0 组回弹弹簧路径。 -->
             <site name="pf_proximal_spring0_s0" pos="0 0.0012 0.011" group="4" size="0.0005"/>
             <site name="pf_proximal_spring0_s1" pos="0 0.0012 0.04" group="4" size="0.0005"/>
 
-            <!-- Spring 1 proximal part -->
+            <!-- 近端指节的第 1 组回弹弹簧路径。 -->
             <site name="pf_proximal_spring1_s0" pos="0 0.003 0.004" group="4" size="0.0005"/>
 
             <body name="right_pinky_middle_link" pos="0 -0.0014554 0.043" quat="0.999962 0.00872639 0 0">
@@ -501,7 +509,7 @@
               <geom type="mesh" mesh="right_pinky_middle_link" class="visual"/>
               <geom size="0.006 0.005 0.010" pos="0 -0.001 0.006" type="box"/>
 
-              <!-- Spring 0 middle part -->
+              <!-- 中间指节的第 0 组回弹弹簧路径。 -->
               <site name="pf_middle_spring0_s0" pos="0 0.004 0.003" group="4" size="0.0005"/>
               <body name="right_pinky_distal_link" pos="0 0.00036966 0.021997" quat="1 0.00052935 0 0">
                 <inertial pos="-0.00184407 0.000358264 0.0107282" quat="0.696242 -0.184421 0.0500633 0.691903"
@@ -513,13 +521,13 @@
                 <geom name="pf_tip" size="0.005 0.005 0.01" pos="0 -0.003 0.014" type="box"/>
                 <site name="pf_tip" pos="0 -0.003 0.023" group="4"/>
 
-                <!-- Tendon 0 distal part -->
+                <!-- 远端指节的第 0 号腱路径。 -->
                 <site name="pf_dip_tendon0_s0" pos="0 -0.0086 0.003" group="4" size="0.002"/>
                 <geom name="pf_dip_tendon0_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 -0.006 0.002"
                   quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
                 <site name="pf_dip_tendon0_s2" pos="0 -0.0015 0.0075" group="4" size="0.0001"/>
 
-                <!-- Tendon 1 distal part -->
+                <!-- 远端指节的第 1 号腱路径。 -->
                 <site name="pf_dip_tendon1_s0" pos="0 0.0025 0.015" group="4" size="0.0001"/>
                 <geom name="pf_dip_tendon1_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 0 0" quat="0.707 0 -0.707 0"
                   type="cylinder" class="visual" group="2"/>
@@ -536,7 +544,7 @@
           <geom type="mesh" mesh="right_t_link" class="visual"/>
           <geom name="th_mp_collision" size="0.015 0.008 0.008" pos="-0.01 0.015 0.005" type="box"/>
 
-          <!-- Tendon 0 first link part -->
+          <!-- 拇指根部第一连杆的第 0 号腱路径。 -->
           <site name="th_t_tendon0_s0" pos="0 0.0018 -0.0030" group="4" size="0.0001"/>
           <geom name="th_t_tendon0_g0" rgba="0 1 0 1" size="0.0025 0.0012" pos="0 0.0018 0" quat="0.707 -0.707 0 0"
             type="cylinder" class="visual" group="2"/>
@@ -548,7 +556,7 @@
             quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
           <site name="th_t_tendon0_s3" pos="0.00185 0.0018 0.0125" group="4" size="0.0001"/>
 
-          <!-- Tendon 1 first link part -->
+          <!-- 拇指根部第一连杆的第 1 号腱路径。 -->
           <site name="th_t_tendon1_s0" pos="0 0.0145 -0.0030" group="4" size="0.0001"/>
           <geom name="th_t_tendon1_g0" rgba="0 1 0 1" size="0.0025 0.0012" pos="0 0.0145 0" quat="0.707 -0.707 0 0"
             type="cylinder" class="visual" group="2"/>
@@ -560,7 +568,7 @@
             quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
           <site name="th_t_tendon1_s3" pos="0.0017 0.0165 0.0203" group="4" size="0.001"/>
 
-          <!-- Spring 0 first link part -->
+          <!-- 拇指根部第一连杆的第 0 组回弹弹簧路径。 -->
           <site name="th_t_spring0_s0" pos="-0.0038 0.021 0.0125" group="4" size="0.001"/>
 
           <body name="right_thumb_mcp_link" pos="-0.0024625 0.011988 0.019805"
@@ -571,18 +579,18 @@
             <geom type="mesh" mesh="right_thumb_mcp_link" class="visual"/>
             <geom name="th_bs_collision_1" size="0.008 0.01 0.016" pos="0 0.0 00.014" type="box"/>
 
-            <!-- Tendon 0 MCP part -->
+            <!-- 拇指 MCP 关节的第 0 号腱路径。 -->
             <site name="th_mcp_tendon0_s0" pos="0 -0.012 0.015" group="4" size="0.0001"/>
 
-            <!--Tendon 1 MCP part  -->
+            <!-- 拇指 MCP 关节的第 1 号腱路径。 -->
             <geom name="th_mcp_tendon1_g0" rgba="0 1 0 1" size="0.0025 0.0025" pos="0 -0.005 0.024"
               quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
             <site name="th_mcp_tendon1_s0" pos="0 -0.002 0.028" group="4" size="0.002"/>
 
-            <!-- Spring 0 MCP part -->
+            <!-- 拇指 MCP 关节的第 0 组回弹弹簧路径。 -->
             <site name="th_mcp_spring0_s0" pos="0 0.011 0.0045" group="4" size="0.001"/>
 
-            <!-- Spring 1 MCP part -->
+            <!-- 拇指 MCP 关节的第 1 组回弹弹簧路径。 -->
             <site name="th_mcp_spring1_s0" pos="0 0.004 0.009" group="4" size="0.001"/>
 
             <body name="right_thumb_proximal_link" pos="0 0.0013652 0.035982">
@@ -592,7 +600,7 @@
               <geom type="mesh" mesh="right_thumb_proximal_link" class="visual"/>
               <geom name="th_px_collision_1" size="0.008 0.006 0.012" pos="0 -0.002 0.012" type="box"/>
 
-              <!-- Spring 1 proximal part -->
+              <!-- 近端指节的第 1 组回弹弹簧路径。 -->
               <site name="th_proximal_spring1_s0" pos="0 0.005 -0.0015" group="4" size="0.0005"/>
               <geom name="th_proximal_spring1_g0" rgba="0 1 0 1" size="0.0045 0.005" pos="0 0 0" quat="0.707 0 -0.707 0"
                 type="cylinder" class="visual" group="2"/>
@@ -607,7 +615,7 @@
                   class="visual"/>
                 <geom name="th_tip" size="0.008 0.006 0.012" pos="0 -0.002 0.015" type="box"/>
                 <site name="th_tip" pos="0 -0.005 0.027" group="4"/>
-                <!-- Tendon 1 ip part -->
+                <!-- 拇指 IP 关节的第 1 号腱路径。 -->
                 <site name="th_tendon1_ip_s0" pos="0 -0.0106 0.002" group="4" size="0.001"/>
                 <geom name="th_tendon1_ip_g0" rgba="0 1 0 1" size="0.0025 0.005" pos="0 -0.008 0.002"
                   quat="0.707 0 -0.707 0" type="cylinder" class="visual" group="2"/>
@@ -620,6 +628,7 @@
     </body>
   </worldbody>
 
+  <!-- 空间腱定义：四根手指和两根拇指腱通过导向点连接各个指节。 -->
   <tendon>
     <spatial name="if_tendon0" class="mcp_tendon">
       <site site="palm_collision_1"/>
@@ -665,7 +674,7 @@
       <geom geom="mf_dip_tendon0_g0" sidesite="mf_dip_tendon0_s0"/>
       <site site="mf_dip_tendon0_s2"/>
     </spatial>
-    <!-- springlength="0.044283" -->
+    <!-- 中指第二根腱使用与原始模型一致的弹簧长度设置。 -->
     <spatial name="mf_tendon1" class="flex_tendon">
       <site site="mf_dip_tendon1_s0"/>
       <geom geom="mf_dip_tendon1_g0" sidesite="mf_dip_tendon1_s1"/>
@@ -792,6 +801,7 @@
     </spatial>
   </tendon>
 
+  <!-- 执行器：4 根手指腱、拇指外展、2 根拇指腱和整手抬升。 -->
   <actuator>
     <position name="right_index_A_tendon" tendon="if_tendon0" ctrlrange="0.058520 0.110387" kp="10000"/>
     <position name="right_middle_A_tendon" tendon="mf_tendon0" ctrlrange="0.058520 0.110387" kp="10000"/>
@@ -803,6 +813,7 @@
     <position name="hand_lift_A" joint="hand_lift" ctrlrange="0 0.25" kp="500"/>
   </actuator>
 
+  <!-- 传感器：记录六根腱的长度和拇指外展关节位置。 -->
   <sensor>
     <tendonpos name="len_if" tendon="if_tendon0"/>
     <tendonpos name="len_mf" tendon="mf_tendon0"/>
@@ -813,6 +824,7 @@
     <jointpos name="len_th_abd" joint="right_thumb_cmc_abd"/>
   </sensor>
 
+  <!-- 关节等式约束：让 PIP/DIP 和拇指 MCP/IP 按联动关系弯曲。 -->
   <equality>
     <joint joint1="right_index_pip" joint2="right_index_dip"/>
     <joint joint1="right_middle_pip" joint2="right_middle_dip"/>
@@ -821,4 +833,7 @@
     <joint joint1="right_thumb_mcp" joint2="right_thumb_ip"/>
   </equality>
 </mujoco>
+
+
+
 
