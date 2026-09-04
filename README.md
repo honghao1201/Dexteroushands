@@ -28,8 +28,29 @@
 尚无业务代码。技术栈确定后补充实际环境、依赖安装、启动和测试命令。
 
 ## 版本管理
-当前未初始化 Git 仓库。Git 可用后，在项目目录执行 `git init`，再通过 `git status` 检查状态。
-是否提交代码和连接远程仓库由用户决定。
+仓库已初始化并连接到 GitHub `origin/main`。在项目目录执行 `git status` 检查状态。
+是否提交代码和推送远程仓库由用户决定。
+
+## Aero Hand MuJoCo 仿真
+
+模型位于 `models/tetheria_aero_hand_open/`，包含右手场景、MJCF 文件和网格资源。模型通过空间腱绳、弹簧和滑轮实现腱绳驱动。
+
+首次运行：
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python simulate.py
+```
+
+也可以直接使用 MuJoCo viewer：
+
+```powershell
+python -m mujoco.viewer --mjcf models/tetheria_aero_hand_open/scene_right.xml
+```
+
+仿真入口会打印关节、腱绳和执行器数量，并打开右手场景。当前入口用于验证模型加载和自由仿真；控制器与任务环境将在下一步添加。
 
 ## 参考
 - [Codex IDE 官方说明](https://learn.chatgpt.com/docs/codex/ide)
