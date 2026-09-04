@@ -1,0 +1,12 @@
+﻿<mujoco model="aero_hand_grasp_scene">
+  <compiler meshdir="../models/tetheria_aero_hand_open/assets"/>
+  <include file="right_hand.xml"/>
+  <worldbody>
+    <geom name="floor" pos="0 0 -0.25" size="0 0 0.01" type="plane" contype="2" conaffinity="2"/>
+    <body name="grasp_object" pos="0.10 0.0 -0.06">
+      <freejoint name="object_free"/>
+      <geom name="grasp_cube" type="box" size="0.018 0.018 0.018" mass="0.04" rgba="0.8 0.15 0.1 1" friction="1.2 0.01 0.001"/>
+    </body>
+  </worldbody>
+</mujoco>
+

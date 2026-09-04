@@ -50,7 +50,19 @@ python simulate.py
 python -m mujoco.viewer --mjcf models/tetheria_aero_hand_open/scene_right.xml
 ```
 
-仿真入口会打印关节、腱绳和执行器数量，并打开右手场景。当前入口用于验证模型加载和自由仿真；控制器与任务环境将在下一步添加。
+仿真入口会打印关节、腱绳和执行器数量，并打开右手场景。抓取环境和 PPO 训练入口见下方。
+
+## PPO 抓取控制
+
+第一版抓取环境位于 `rl/`：动作是 7 个腱绳/拇指外展执行器的归一化目标，奖励鼓励接近方块、接触并抬升方块。
+
+```powershell
+.conda\python.exe -m pip install -r requirements.txt
+cd rl
+..\.conda\python.exe train_ppo.py
+```
+
+这是用于验证动作空间、接触和奖励设计的基线。训练成功后，再加入物体位置、尺寸、摩擦和初始姿态的随机化，以及分阶段课程学习。
 
 ## 参考
 - [Codex IDE 官方说明](https://learn.chatgpt.com/docs/codex/ide)
