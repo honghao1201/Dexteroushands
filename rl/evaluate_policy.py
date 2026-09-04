@@ -15,11 +15,16 @@ from aero_grasp_env import AeroGraspEnv
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Visualize a trained Aero Hand PPO policy")
-    parser.add_argument("--model", type=pathlib.Path, default=pathlib.Path("checkpoints/aero_grasp_ppo"))
+    parser.add_argument("--model", type=pathlib.Path, default=pathlib.Path("rl/checkpoints/aero_grasp_ppo"))
     parser.add_argument("--episodes", type=int, default=5)
     args = parser.parse_args()
 
-    model_path = args.model if args.model.is_absolute() else pathlib.Path(__file__).resolve().parent / args.model
+    if args.model.is_absolute():
+        model_path = args.model
+    elif (pathlib.Path.cwd() / args.model).exists() or (pathlib.Path.cwd() / f"{args.model}.zip").exists():
+        model_path = pathlib.Path.cwd() / args.model
+    else:
+        model_path = pathlib.Path(__file__).resolve().parent / args.model
     env = AeroGraspEnv()
     policy = PPO.load(model_path, env=env)
     observation, _ = env.reset(seed=0)
