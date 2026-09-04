@@ -29,7 +29,7 @@
 
 ## 版本管理
 仓库已初始化并连接到 GitHub `origin/main`。在项目目录执行 `git status` 检查状态。
-是否提交代码和推送远程仓库由用户决定。
+日常更新默认只保留在本地；需要手动上传时执行 `git push`。
 
 ## Aero Hand MuJoCo 仿真
 
