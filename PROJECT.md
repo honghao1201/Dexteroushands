@@ -1,39 +1,22 @@
-# Dexteroushands
+﻿# Dexteroushands 项目记录
 
-## 项目目标
-待用户说明。当前仅完成项目管理基础文件的准备，不代表业务项目已实现。
+## 当前目标
+在 MuJoCo 中控制 TetherIA Aero Hand：掌面保持竖直，拇指位于球体一侧，其余四指位于另一侧；通过相向闭合建立夹紧力，再沿竖直方向抬升并稳定保持球体。
 
 ## 当前状态
+
 - 项目目录：`D:\Projects\Dexteroushands`
-- 初始检查：空目录，无业务代码。
-- 编辑器：VS Code；官方 Codex 扩展已安装，编辑器内登录与实际对话待验证。
-- 技术栈：Python + MuJoCo；模型为 TetherIA Aero Hand Open MJCF。
-- 当前运行环境：需要 Python 3 和 `mujoco` Python 包；本机尚未安装 Python。
-- 版本管理：已初始化本地 Git 仓库，当前分支为 `main`，首个基线提交为 `83c9d25`。
+- 模型：`models/tetheria_aero_hand_open/`
+- Python 环境：`.conda\python.exe`
+- 仿真入口：`simulate.py`
+- RL 环境：`rl/aero_grasp_env.py`
+- 训练入口：`rl/train_ppo.py`
+- 回放入口：`rl/evaluate_policy.py`
+- 最新模型：`rl/checkpoints/aero_grasp_ppo.zip`
+- Git：本地 `main` 分支；默认不自动 push
 
-## 范围与验收
-- 目标用户：待确定。
-- 核心功能：待确定。
-- 首个可运行版本的验收标准：能加载右手场景并打开 MuJoCo viewer，打印模型的关节、腱绳和执行器数量。
-- 暂不纳入的功能：待确定。
+## 训练验证
 
-## 里程碑
-| 编号 | 里程碑 | 完成条件 | 状态 |
-| --- | --- | --- | --- |
-| M0 | 协作环境就绪 | 管理文件到位，VS Code 中 Codex 能读取项目规则并回答 | 进行中 |
-| M1 | 明确项目范围 | 明确目标、首版功能及验收标准 | 待办 |
-| M2 | 首个可运行版本 | `simulate.py` 加载右手场景并启动 viewer | 已完成 |
-| M3 | 对向夹持抬升基线 | PPO 在腱绳空间训练，模型可回放并报告抓取指标 | 已完成（100,352 步基线；需继续评估成功率） |
+最新 PPO 训练完成 100,352 个实际步数。使用 10 个不同随机种子做确定性回放，10/10 回合达到成功条件；完成时间 34–41 个控制步，球体抬升约 0.29 m，整手抬升约 0.24 m，水平速度约 0.003–0.007 m/s，角速度约 0.05–0.09 rad/s，并持续保持 20 步。
 
-## 已有决策
-- 使用项目内 Markdown 文件维护任务、里程碑和协作规则。
-- Git 提交身份：Hao `<honghao19941201@gmail.com>`。
-- 先确认实际需求，再选择技术栈和搭建代码结构。
-- 尚未设置交付日期。
-- 采用 TetherIA Aero Hand Open 的 MuJoCo Menagerie 模型，模型文件保存在 `models/tetheria_aero_hand_open/`。
-- 仿真启动入口为 `simulate.py`，依赖记录在 `requirements.txt`。
-- 抓取环境为 `rl/aero_grasp_env.py`，训练入口为 `rl/train_ppo.py`，最近模型为 `rl/checkpoints/aero_grasp_ppo.zip`。
-- 抓取奖励包含掌心固定、逐步闭合、拇指与四指对向接触、抬升和低水平滑移速度约束。
-
-## 下一步
-安装 Python 并运行 `python simulate.py`；随后添加腱绳控制器、状态观测和第一个操作任务。
+这代表当前基线已经学会设定的动作链路，但仍建议在增加球体质量、摩擦和初始位置随机化后继续训练。

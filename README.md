@@ -1,89 +1,68 @@
-# Dexteroushands
+﻿# Dexteroushands
 
-项目目标和技术栈尚待确定。目前包含 Codex 协作与项目管理基础文件。
+基于 MuJoCo 的 TetherIA Aero Hand 腱绳驱动灵巧手仿真与强化学习项目。
 
-## 在 VS Code 中开始
-1. 使用“文件 → 打开文件夹”打开 `D:\Projects\Dexteroushands`。
-2. 打开 Codex 侧边栏并按提示登录；也可在命令面板中执行 `Codex: Open Codex Sidebar`。
-3. 在 Codex 中发送下面的启动指令。
+## 在 VS Code 中打开
 
-```text
-请先阅读 AGENTS.md、PROJECT.md 和 TASKS.md，概述当前项目状态和适用规则。
-检查这些文件是否存在；如果能正确读取，记录 T002 的验证结果。
-接着帮助我明确项目目标、首版功能和验收标准，再更新项目说明和任务清单。
-```
-
-## 日常协作
-- 查看进度：“请根据 TASKS.md 汇报已完成、进行中、阻塞及下一步。”
-- 开始任务：“请执行 Txxx，完成后验证结果并更新任务清单。”
-- 新增需求：“请把以下需求拆成有验收标准的任务，并更新里程碑：……”
-- 结束工作：“请同步项目进展、验证结果和下一次继续的位置。”
-
-## 文件导航
-- [项目说明与里程碑](PROJECT.md)
-- [任务清单](TASKS.md)
-- [Codex 协作规则](AGENTS.md)
-
-## 运行与测试
-尚无业务代码。技术栈确定后补充实际环境、依赖安装、启动和测试命令。
-
-## 版本管理
-仓库已初始化并连接到 GitHub `origin/main`。在项目目录执行 `git status` 检查状态。
-日常更新默认只保留在本地；需要手动上传时执行 `git push`。
-
-## Aero Hand MuJoCo 仿真
-
-模型位于 `models/tetheria_aero_hand_open/`，包含右手场景、MJCF 文件和网格资源。模型通过空间腱绳、弹簧和滑轮实现腱绳驱动。
-
-首次运行：
+打开 `D:\Projects\Dexteroushands`，在 Codex/终端中使用项目里的 Python 环境：
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python simulate.py
+.\.conda\python.exe -m pip install -r requirements.txt
 ```
 
-也可以直接使用 MuJoCo viewer：
+## MuJoCo 手部仿真
 
 ```powershell
-python -m mujoco.viewer --mjcf models/tetheria_aero_hand_open/scene_right.xml
+.\.conda\python.exe simulate.py
 ```
 
-仿真入口会打印关节、腱绳和执行器数量，并打开右手场景。抓取环境和 PPO 训练入口见下方。
-
-## PPO 抓取控制
-
-第一版抓取环境位于 `rl/`：动作是 7 个腱绳/拇指外展执行器的归一化目标，奖励鼓励接近方块、接触并抬升方块。
+也可以直接查看原始手部场景：
 
 ```powershell
-.conda\python.exe -m pip install -r requirements.txt
-cd rl
-..\.conda\python.exe train_ppo.py
+.\.conda\python.exe -m mujoco.viewer --mjcf models/tetheria_aero_hand_open/scene_right.xml
 ```
 
-先做短跑验证可使用 `..\.conda\python.exe train_ppo.py --timesteps 128`；确认环境正常后再增加训练步数。
+模型文件位于 `models/tetheria_aero_hand_open/`。当前训练场景固定掌面姿态为竖直方向，球体位于拇指一侧和其余四指一侧之间；`hand_lift` 滑动关节负责整只手沿世界坐标 Z 轴抬升。
 
-这是用于验证动作空间、接触和奖励设计的基线。训练成功后，再加入物体位置、尺寸、摩擦和初始姿态的随机化，以及分阶段课程学习。
+## PPO 抓取任务
 
-## 可视化训练结果
+动作空间为 8 维：食指、中指、无名指、小指 4 个腱绳目标，拇指外展，拇指 2 个腱绳目标，以及整手抬升。环境文件为 `rl/aero_grasp_env.py`，场景文件为 `rl/grasp_scene.xml`。
 
-回放训练好的 PPO 策略：
+训练 100,000 步：
 
 ```powershell
-cd D:\Projects\Dexteroushands\rl
-..\.conda\python.exe evaluate_policy.py --model checkpoints\aero_grasp_ppo --episodes 5
+.\.conda\python.exe rl\train_ppo.py --timesteps 100000
 ```
 
-查看 TensorBoard 曲线：
+模型输出：`rl/checkpoints/aero_grasp_ppo.zip`。
+
+成功条件同时检查球体离开支撑面、整手已抬升、拇指与其余手指保持对向接触、法向夹紧力、低水平/垂直/角速度，并连续保持 20 个控制步。
+
+## 回放和训练曲线
+
+打开 MuJoCo 回放窗口：
 
 ```powershell
-cd D:\Projects\Dexteroushands
+.\.conda\python.exe rl\evaluate_policy.py --model rl\checkpoints\aero_grasp_ppo --episodes 5
+```
+
+查看 TensorBoard：
+
+```powershell
 .\.conda\Scripts\tensorboard.exe --logdir runs
 ```
 
-然后在浏览器打开 `http://localhost:6006`。回放窗口会显示手部运动，并在终端报告每个 episode 是否成功抬升方块。
+然后打开 `http://localhost:6006`。
 
-## 参考
-- [Codex IDE 官方说明](https://learn.chatgpt.com/docs/codex/ide)
-- [AGENTS.md 官方说明](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+## Git 版本管理
+
+本地修改默认只保留在本机，不会自动上传 GitHub。检查、提交和手动同步：
+
+```powershell
+git status
+git add .
+git commit -m "describe the change"
+git push origin main
+```
+
+远程仓库：[honghao1201/Dexteroushands](https://github.com/honghao1201/Dexteroushands)
