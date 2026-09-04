@@ -62,6 +62,8 @@ cd rl
 ..\.conda\python.exe train_ppo.py
 ```
 
+先做短跑验证可使用 `..\.conda\python.exe train_ppo.py --timesteps 128`；确认环境正常后再增加训练步数。
+
 这是用于验证动作空间、接触和奖励设计的基线。训练成功后，再加入物体位置、尺寸、摩擦和初始姿态的随机化，以及分阶段课程学习。
 
 ## 参考
