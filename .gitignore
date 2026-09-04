@@ -4,6 +4,12 @@
 !.env.example
 !.env.sample
 
+# Python caches and local training outputs
+__pycache__/
+*.py[cod]
+rl/checkpoints/
+rl/runs/
+
 # Operating system files
 Thumbs.db
 .DS_Store
