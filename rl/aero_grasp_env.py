@@ -30,9 +30,11 @@ class AeroGraspEnv(gym.Env):
         self.max_steps = max_steps
         self.steps = 0
 
-        # 缓存物体、抬升关节、抓取标记点和五个指尖的 MuJoCo 索引。
+        # 缓存物体、抬升关节、掌部和五个指尖的 MuJoCo 索引。
         self.object_body = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "grasp_object")
         self.object_geom = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "grasp_sphere")
+        self.support_geom = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "support_surface")
+        self.palm_body = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "palm")
         self.object_joint = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, "object_free")
         self.object_qpos = self.model.jnt_qposadr[self.object_joint]
         self.hand_lift_joint = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, "hand_lift")
@@ -46,6 +48,7 @@ class AeroGraspEnv(gym.Env):
         self.support_z = -0.09
         self.required_hold_steps = 20
         self.hold_steps = 0
+        self.initial_object_z = -0.064
 
         # 动作平滑缓存；动作空间的每一维都归一化到 [-1, 1]。
         self.last_action = np.zeros(self.model.nu, dtype=np.float32)
@@ -67,9 +70,12 @@ class AeroGraspEnv(gym.Env):
         super().reset(seed=seed)
         # 恢复 XML 中的初始关键帧，再对球体做小范围横向随机化。
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
+        # 球体放在拇指和四指之间，并在 X/Y 平面做小范围随机化；
+        # X=0.17 可避开掌部碰撞几何体，确保任务主要依靠侧向摩擦夹持。
         self.data.qpos[self.object_qpos : self.object_qpos + 3] = np.array(
-            [0.13 + self.np_random.uniform(-0.008, 0.008), -0.015 + self.np_random.uniform(-0.008, 0.008), -0.064]
+            [0.17 + self.np_random.uniform(-0.006, 0.006), -0.015 + self.np_random.uniform(-0.008, 0.008), -0.064]
         )
+        self.initial_object_z = float(self.data.qpos[self.object_qpos + 2])
         # 清零所有速度和动作平滑状态，避免上一个回合的惯性影响新回合。
         self.data.qvel[:] = 0
         self.last_action[:] = 0
@@ -106,22 +112,43 @@ class AeroGraspEnv(gym.Env):
         distance = float(np.linalg.norm(object_pos - hand_pos))
         lift = float(object_pos[2] - self.support_z)
         hand_lift = float(self.data.qpos[self.hand_lift_qpos])
+        # palm 的局部 Z 轴是掌面法向，局部 X 轴是拇指/四指的侧向分界轴。
+        palm_axes = self.data.xmat[self.palm_body].reshape(3, 3)
+        palm_normal = palm_axes[:, 2]
+        palm_normal_vertical = float(abs(palm_normal[2]))
+        palm_normal_horizontal = float(np.linalg.norm(palm_normal[:2]))
+        tip_positions = self.data.site_xpos[self.tip_sites]
+        finger_side = float(np.mean((tip_positions[:4] - object_pos) @ palm_axes[:, 0]))
+        thumb_side = float((tip_positions[4] - object_pos) @ palm_axes[:, 0])
+        opposite_side = bool(finger_side * thumb_side < 0.0)
+        side_separation = min(abs(finger_side), abs(thumb_side))
+        side_contact_score = min(1.0, side_separation / 0.02) if opposite_side else 0.0
         closure = float(np.mean((self.data.ctrl[:4] - low[:4]) / (high[:4] - low[:4])))
         thumb_closure = float(np.mean((self.data.ctrl[5:7] - low[5:7]) / (high[5:7] - low[5:7])))
         lift_command = float(np.clip((self.data.ctrl[7] - low[7]) / (high[7] - low[7]), 0.0, 1.0))
-        thumb_contacts, finger_contacts, normal_force = self._object_contacts()
+        thumb_contacts, finger_contacts, normal_force, palm_contacts, support_contacts = self._object_contacts()
         opposing_contact = min(1.0, thumb_contacts) * min(1.0, finger_contacts / 2.0)
         horizontal_speed = float(np.linalg.norm(self.data.qvel[self.object_qpos : self.object_qpos + 2]))
         vertical_speed = float(abs(self.data.qvel[self.object_qpos + 2]))
         angular_speed = float(np.linalg.norm(self.data.qvel[self.object_qpos + 3 : self.object_qpos + 6]))
-        # 成功需要球体离开支撑面、整手抬高、两侧接触，并持续低速稳定保持。
+        object_lift = float(object_pos[2] - self.initial_object_z)
+        lift_sync_error = abs(object_lift - hand_lift)
+        # 成功需要掌面竖直、球体位于拇指/四指两侧、整手抬高、两侧接触，
+        # 并且球体不再接触支撑面或掌部，同时持续低速稳定保持。
         lifted = lift > 0.065
         stable = bool(
             lifted
             and hand_lift > 0.035
+            and palm_normal_vertical < 0.5
+            and palm_normal_horizontal > 0.86
+            and opposite_side
+            and side_contact_score > 0.5
             and lift_command > 0.25
             and opposing_contact > 0.5
             and normal_force > 0.05
+            and palm_contacts == 0
+            and support_contacts == 0
+            and lift_sync_error < 0.10
             and horizontal_speed < 0.08
             and vertical_speed < 0.12
             and angular_speed < 2.0
@@ -131,6 +158,12 @@ class AeroGraspEnv(gym.Env):
         success = self.hold_steps >= self.required_hold_steps
         stable_hold = min(1.0, self.hold_steps / self.required_hold_steps)
         lift_progress = min(1.0, max(0.0, hand_lift) / 0.12)
+        # 抬升阶段若拇指跑到同侧，或球体碰到掌部/仍压在支撑面上，视为违规。
+        invalid_side = bool(opposing_contact > 0.5 and not opposite_side and lift_command > 0.20)
+        invalid_support = bool(
+            (palm_contacts > 0 and lift > 0.04)
+            or (support_contacts > 0 and opposing_contact > 0.5 and lift_command > 0.15)
+        )
 
         # 奖励由接近球体、手指闭合、对向接触、抬升进度、夹紧力和低滑移组成。
         lift_reward = min(max(0.0, lift), 0.08)
@@ -140,16 +173,24 @@ class AeroGraspEnv(gym.Env):
             + 0.8 * closure
             + 0.8 * thumb_closure
             + 4.0 * opposing_contact
+            + 6.0 * side_contact_score * opposing_contact
+            - 4.0 * float(invalid_side)
+            + 1.0 * palm_normal_horizontal
+            + 3.0 * side_contact_score * lift_progress
             + 12.0 * lift_reward * opposing_contact * lift_command
-            + 4.0 * opposing_contact * lift_progress
+            + 10.0 * opposing_contact * lift_progress
+            - 4.0 * opposing_contact * (1.0 - lift_progress)
             + 1.0 * opposing_contact * lift_command
             + 4.0 * stable_hold * opposing_contact
             + 0.03 * force_reward * opposing_contact
+            - 1.0 * palm_contacts
+            - 1.0 * support_contacts * max(0.0, lift_command)
             - 0.5 * horizontal_speed
         )
         # 成功或明确掉落/远离后结束回合；否则让策略继续学习。
         terminated = bool(success)
         dropped = bool(object_pos[2] < self.support_z - 0.07 or distance > 0.35)
+        terminated = terminated or invalid_side or invalid_support
         if success:
             reward += 15.0
         if dropped:
@@ -161,8 +202,19 @@ class AeroGraspEnv(gym.Env):
             "distance": distance,
             "lift": lift,
             "hand_lift": hand_lift,
+            "palm_normal_vertical": palm_normal_vertical,
+            "palm_normal_horizontal": palm_normal_horizontal,
+            "finger_side": finger_side,
+            "thumb_side": thumb_side,
+            "side_separation": side_separation,
+            "opposite_side": opposite_side,
+            "side_contact_score": side_contact_score,
+            "object_lift": object_lift,
+            "lift_sync_error": lift_sync_error,
             "thumb_contacts": thumb_contacts,
             "finger_contacts": finger_contacts,
+            "palm_contacts": palm_contacts,
+            "support_contacts": support_contacts,
             "opposing_contact": opposing_contact,
             "normal_force": normal_force,
             "lift_command": lift_command,
@@ -172,15 +224,19 @@ class AeroGraspEnv(gym.Env):
             "hold_steps": self.hold_steps,
             "stable": stable,
             "success": success,
+            "invalid_side": invalid_side,
+            "invalid_support": invalid_support,
         }
         return self._observation(), reward, terminated, truncated, info
 
-    def _object_contacts(self) -> tuple[int, int, float]:
-        """统计球体与拇指/其余手指的接触数量和法向力。"""
+    def _object_contacts(self) -> tuple[int, int, float, int, int]:
+        """统计球体与各类接触体的数量，以及手指产生的法向力。"""
         # 遍历当前所有接触，只保留涉及目标球体的接触。
         thumb_contacts = 0
         finger_contacts = 0
         normal_force = 0.0
+        palm_contacts = 0
+        support_contacts = 0
         force = np.zeros(6, dtype=np.float64)
         for index in range(self.data.ncon):
             contact = self.data.contact[index]
@@ -192,6 +248,10 @@ class AeroGraspEnv(gym.Env):
             other_body = int(self.model.geom_bodyid[other_geom])
             body_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, other_body) or ""
             contact_name = f"{other_name} {body_name}".lower()
+            if other_geom == self.support_geom or "support_surface" in contact_name:
+                support_contacts += 1
+            if "palm" in contact_name or "tetheria_mount" in contact_name:
+                palm_contacts += 1
             # MuJoCo 接触力的第 0 个分量是法向力，累加用于夹紧力奖励。
             mujoco.mj_contactForce(self.model, self.data, index, force)
             normal_force += max(0.0, float(force[0]))
@@ -199,4 +259,4 @@ class AeroGraspEnv(gym.Env):
                 thumb_contacts += 1
             elif any(finger in contact_name for finger in ("index", "middle", "ring", "pinky")):
                 finger_contacts += 1
-        return thumb_contacts, finger_contacts, normal_force
+        return thumb_contacts, finger_contacts, normal_force, palm_contacts, support_contacts
