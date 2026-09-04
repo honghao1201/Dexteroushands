@@ -9,6 +9,7 @@ __pycache__/
 *.py[cod]
 rl/checkpoints/
 rl/runs/
+runs/
 
 # Operating system files
 Thumbs.db
