@@ -66,6 +66,24 @@ cd rl
 
 这是用于验证动作空间、接触和奖励设计的基线。训练成功后，再加入物体位置、尺寸、摩擦和初始姿态的随机化，以及分阶段课程学习。
 
+## 可视化训练结果
+
+回放训练好的 PPO 策略：
+
+```powershell
+cd D:\Projects\Dexteroushands\rl
+..\.conda\python.exe evaluate_policy.py --model checkpoints\aero_grasp_ppo --episodes 5
+```
+
+查看 TensorBoard 曲线：
+
+```powershell
+cd D:\Projects\Dexteroushands
+.\.conda\Scripts\tensorboard.exe --logdir runs
+```
+
+然后在浏览器打开 `http://localhost:6006`。回放窗口会显示手部运动，并在终端报告每个 episode 是否成功抬升方块。
+
 ## 参考
 - [Codex IDE 官方说明](https://learn.chatgpt.com/docs/codex/ide)
 - [AGENTS.md 官方说明](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
