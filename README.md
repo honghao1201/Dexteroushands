@@ -1,6 +1,6 @@
 # Dexteroushands
 
-基于 MuJoCo 的 Shadow Hand 灵巧手仿真与强化学习项目。当前主线使用 MuJoCo Menagerie 中的 Shadow Hand E3M5 右手模型，目标是先完成稳定的预抓取位姿，再训练手指闭合、真实接触、夹持和抬升。
+基于 MuJoCo 的 Shadow Hand 灵巧手仿真与强化学习项目。当前主线使用 MuJoCo Menagerie 中的 Shadow Hand E3M5 右手模型，目前目标是先完成稳定的预抓取位姿，再训练手指闭合、真实接触、夹持和抬升。
 
 TetherIA Aero Hand 文件仍保留在 `models/tetheria_aero_hand_open/`，用于历史实验和旧策略对照，不再作为当前 Shadow Hand 策略的运行模型。Aero Hand 和 Shadow Hand 的关节、执行器、坐标系不同，checkpoint 不能混用。
 
