@@ -1,0 +1,55 @@
+"""评估 Shadow Hand 从上方接近球体的 PPO 策略。"""
+from __future__ import annotations
+
+import argparse
+import pathlib
+
+from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+from shadow_topdown_approach_env import ShadowTopDownApproachEnv
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--model", type=pathlib.Path, default=pathlib.Path("rl/checkpoints/shadow_topdown_approach_ppo_v1"))
+    parser.add_argument("--episodes", type=int, default=10)
+    args = parser.parse_args()
+
+    env = DummyVecEnv([lambda: ShadowTopDownApproachEnv()])
+    stats = pathlib.Path(str(args.model) + "_vecnormalize.pkl")
+    if stats.exists():
+        env = VecNormalize.load(str(stats), env)
+        env.training = False
+        env.norm_reward = False
+    model = PPO.load(str(args.model), env=env, device="cpu")
+
+    successes, anchor_errors, angle_errors, gaps = 0, [], [], []
+    for episode in range(args.episodes):
+        obs = env.reset()
+        done = [False]
+        last_info = {}
+        while not done[0]:
+            action, _ = model.predict(obs, deterministic=True)
+            obs, _, done, infos = env.step(action)
+            last_info = infos[0]
+        successes += int(last_info.get("success", False))
+        anchor_errors.append(float(last_info.get("anchor_error", float("nan"))))
+        angle_errors.append(float(last_info.get("angle_error", float("nan"))))
+        gaps.append(float(last_info.get("min_gap", float("nan"))))
+        print(
+            f"episode {episode + 1}: success={last_info.get('success')} "
+            f"anchor_error={anchor_errors[-1]:.4f} m "
+            f"angle_error={angle_errors[-1] * 180.0 / 3.1415926:.2f} deg "
+            f"min_gap={gaps[-1]:.4f} m"
+        )
+    print(
+        f"Shadow TopDown Approach success: {successes}/{args.episodes}; "
+        f"mean center error={sum(anchor_errors) / len(anchor_errors):.4f} m; "
+        f"mean angle error={sum(angle_errors) / len(angle_errors) * 180.0 / 3.1415926:.2f} deg"
+    )
+    env.close()
+
+
+if __name__ == "__main__":
+    main()

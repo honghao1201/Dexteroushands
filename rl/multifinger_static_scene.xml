@@ -1,0 +1,12 @@
+<!-- 多指静态夹紧预训练场景：球体固定在世界中，由 MuJoCo 正常求解指尖接触。 -->
+<mujoco model="aero_hand_multifinger_static_scene">
+  <compiler meshdir="../models/tetheria_aero_hand_open/assets"/>
+  <include file="right_hand.xml"/>
+  <worldbody>
+    <geom name="support_surface" pos="0 0 -0.055" size="0 0 0.01" type="plane" contype="1" conaffinity="1"/>
+    <!-- 不使用 freejoint，避免训练时回写 qpos 破坏接触求解。 -->
+    <body name="grasp_object" pos="0.10 -0.03 -0.03">
+      <geom name="grasp_sphere" type="sphere" size="0.025" rgba="0.8 0.15 0.1 1" friction="1.2 0.01 0.001" solref="0.01 1" solimp="0.95 0.995 0.001"/>
+    </body>
+  </worldbody>
+</mujoco>

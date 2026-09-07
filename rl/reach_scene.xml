@@ -1,0 +1,13 @@
+﻿<mujoco model="aero_hand_reach_scene">
+  <compiler meshdir="../models/tetheria_aero_hand_open/assets"/>
+  <include file="right_hand_reach.xml"/>
+  <worldbody>
+    <!-- 固定支撑面和球体用于第一阶段的接近训练；此阶段不允许抬升物体。 -->
+    <geom name="support_surface" pos="0 0 -0.12" size="0.35 0.35 0.005" type="box" rgba="0.25 0.25 0.28 1"/>
+    <body name="grasp_object" pos="0.10 -0.03 -0.03">
+      <geom name="grasp_sphere" type="sphere" size="0.025" mass="0.05" rgba="0.85 0.25 0.12 1"
+            friction="1.2 0.01 0.001" solref="0.01 1" solimp="0.95 0.995 0.001"/>
+    </body>
+  </worldbody>
+</mujoco>
+

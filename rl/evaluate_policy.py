@@ -43,6 +43,11 @@ def main() -> None:
     print(f"Loaded policy: {model_path}")
     print("回放完成后窗口会保持打开，请手动关闭 MuJoCo 窗口退出。")
     with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
+        # 将默认视角放在掌面法向方向，方便直接检查竖直掌面和两侧夹持关系。
+        viewer.cam.azimuth = 270
+        viewer.cam.elevation = 0
+        viewer.cam.distance = 0.35
+        viewer.cam.lookat[:] = [0.17, -0.02, -0.01]
         while viewer.is_running():
             # 达到目标回合后停止推进物理，只保持窗口和最后画面，方便检查。
             if episode >= args.episodes:

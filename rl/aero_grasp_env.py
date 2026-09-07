@@ -48,7 +48,9 @@ class AeroGraspEnv(gym.Env):
         self.support_z = -0.09
         self.required_hold_steps = 20
         self.hold_steps = 0
-        self.initial_object_z = -0.064
+        # XML 是初始球心位置的唯一来源，避免回放、截图和训练使用不同位置。
+        self.initial_object_position = self.model.qpos0[self.object_qpos : self.object_qpos + 3].copy()
+        self.initial_object_z = float(self.initial_object_position[2])
 
         # 动作平滑缓存；动作空间的每一维都归一化到 [-1, 1]。
         self.last_action = np.zeros(self.model.nu, dtype=np.float32)
@@ -70,10 +72,10 @@ class AeroGraspEnv(gym.Env):
         super().reset(seed=seed)
         # 恢复 XML 中的初始关键帧，再对球体做小范围横向随机化。
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
-        # 球体放在拇指和四指之间，并在 X/Y 平面做小范围随机化；
-        # X=0.17 可避开掌部碰撞几何体，确保任务主要依靠侧向摩擦夹持。
-        self.data.qpos[self.object_qpos : self.object_qpos + 3] = np.array(
-            [0.17 + self.np_random.uniform(-0.006, 0.006), -0.015 + self.np_random.uniform(-0.008, 0.008), -0.064]
+        # 球心沿世界 -X 水平方向远离掌面，Z 高度固定。
+        # 仅在水平面随机扰动；较小的 X 范围保留初始球体与手部的间隙。
+        self.data.qpos[self.object_qpos : self.object_qpos + 3] = self.initial_object_position + np.array(
+            [self.np_random.uniform(-0.001, 0.001), self.np_random.uniform(-0.005, 0.005), 0.0]
         )
         self.initial_object_z = float(self.data.qpos[self.object_qpos + 2])
         # 清零所有速度和动作平滑状态，避免上一个回合的惯性影响新回合。
@@ -112,14 +114,15 @@ class AeroGraspEnv(gym.Env):
         distance = float(np.linalg.norm(object_pos - hand_pos))
         lift = float(object_pos[2] - self.support_z)
         hand_lift = float(self.data.qpos[self.hand_lift_qpos])
-        # palm 的局部 Z 轴是掌面法向，局部 X 轴是拇指/四指的侧向分界轴。
+        # palm 的局部 Y 轴是掌面法向，局部 Z 轴是拇指/四指的水平侧向分界轴。
         palm_axes = self.data.xmat[self.palm_body].reshape(3, 3)
-        palm_normal = palm_axes[:, 2]
+        palm_normal = palm_axes[:, 1]
         palm_normal_vertical = float(abs(palm_normal[2]))
         palm_normal_horizontal = float(np.linalg.norm(palm_normal[:2]))
         tip_positions = self.data.site_xpos[self.tip_sites]
-        finger_side = float(np.mean((tip_positions[:4] - object_pos) @ palm_axes[:, 0]))
-        thumb_side = float((tip_positions[4] - object_pos) @ palm_axes[:, 0])
+        side_axis = palm_axes[:, 2]
+        finger_side = float(np.mean((tip_positions[:4] - object_pos) @ side_axis))
+        thumb_side = float((tip_positions[4] - object_pos) @ side_axis)
         opposite_side = bool(finger_side * thumb_side < 0.0)
         side_separation = min(abs(finger_side), abs(thumb_side))
         side_contact_score = min(1.0, side_separation / 0.02) if opposite_side else 0.0
