@@ -1,26 +1,10 @@
 # Dexteroushands
 
-基于 MuJoCo 的 Shadow Hand 灵巧手仿真与强化学习项目。当前主线使用 MuJoCo Menagerie 中的 Shadow Hand E3M5 右手模型，目前目标是先完成稳定的预抓取位姿，再训练手指闭合、真实接触、夹持和抬升。
+基于 MuJoCo 的 TetherIA Aero Hand 腱绳驱动灵巧手仿真与强化学习项目。
 
-TetherIA Aero Hand 文件仍保留在 `models/tetheria_aero_hand_open/`，用于历史实验和旧策略对照，不再作为当前 Shadow Hand 策略的运行模型。Aero Hand 和 Shadow Hand 的关节、执行器、坐标系不同，checkpoint 不能混用。
+## 在 VS Code 中打开
 
-## 当前状态
-
-当前可运行的 Shadow Hand 阶段如下：
-
-| 阶段 | 场景 | 状态 | 最近验证 |
-| --- | --- | --- | --- |
-| PoseApproach | `models/shadow_hand/scene_pose.xml` | 已完成的水平姿态接近基线 | 5/5 成功，中心误差 2.4 mm，角度误差 0.61° |
-| TopDownApproach | `models/shadow_hand/scene_topdown.xml` | 当前主线，从上方接近球体 | 5/5 成功，中心误差 6.4 mm，角度误差 1.41° |
-| Finger Closure | 尚未建立 Shadow Hand 环境 | 待办 | 尚未验证 |
-| Contact / Squeeze | 尚未建立 | 待办 | 尚未验证 |
-| Lift / Hold | 尚未建立 | 待办 | 尚未验证 |
-
-TopDownApproach 只负责把张开的手移动到球体上方的预抓取位姿，不闭合手指，也不抬升球体。
-
-## 环境安装
-
-在 VS Code 终端进入项目目录：
+打开 `D:\Projects\Dexteroushands`，在 Codex/终端中使用项目里的 Python 环境：
 
 ```powershell
 cd D:\Projects\Dexteroushands
