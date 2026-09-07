@@ -1,0 +1,7 @@
+<!-- 拇指对指预训练场景：无球、无抬升，只训练四个对指目标。 -->
+<mujoco model="aero_hand_opposition_scene">
+  <compiler meshdir="../models/tetheria_aero_hand_open/assets"/>
+  <option gravity="0 0 0" timestep="0.002"/>
+  <!-- 复用与抓球任务完全相同的竖直手部模型。 -->
+  <include file="right_hand.xml"/>
+</mujoco>

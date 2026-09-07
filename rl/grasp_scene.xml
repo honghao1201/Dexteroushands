@@ -4,11 +4,13 @@
   <compiler meshdir="../models/tetheria_aero_hand_open/assets"/>
   <!-- 引入掌部、五指、腱绳和执行器定义。 -->
   <include file="right_hand.xml"/>
+  <!-- 保留球体与掌部、安装座的真实碰撞；是否违规托举由环境接触判定处理。 -->
   <worldbody>
     <!-- 水平支撑面，球体初始放置在该平面上。 -->
     <geom name="support_surface" pos="0 0 -0.09" size="0 0 0.01" type="plane" contype="1" conaffinity="1"/>
     <!-- 目标球体使用自由关节，可在夹持和抬升时平移与旋转。 -->
-    <body name="grasp_object" pos="0.13 -0.015 -0.064">
+    <!-- Z 高度保持不变；恢复原来的 Y，沿掌心朝向的世界 -X 方向移出手掌。 -->
+    <body name="grasp_object" pos="0.127 -0.015 -0.064">
       <freejoint name="object_free"/>
       <!-- 球体半径 2.5 cm、质量 40 g，摩擦系数用于模拟夹持。 -->
       <geom name="grasp_sphere" type="sphere" size="0.025" mass="0.04" rgba="0.8 0.15 0.1 1" friction="1.2 0.01 0.001"/>

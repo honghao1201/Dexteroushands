@@ -190,8 +190,12 @@
   <worldbody>
     <light name="spotlight" mode="targetbodycom" target="palm" pos="3 0 4"/>
     <body name="tetheria_mount" pos="0.17 -0.17 -0.03" quat="-0.405606 0.405606 0.579209 -0.579209" childclass="tetheria_rh">
-      <!-- 掌面方向固定；hand_lift 是整只手唯一的平移关节。 -->
-      <joint name="hand_lift" type="slide" axis="0 0 1" range="0 0.25" damping="2"/>
+      <!-- 第一阶段允许手腕沿世界 X/Y/上方向平移；姿态仍由固定四元数保持竖直。 -->
+      <!-- hand_lift 的局部 -Y 轴对应世界 +Z。 -->
+      <joint name="hand_lift" type="slide" axis="0 -1 0" range="-0.15 0.15" damping="2"/>
+      <!-- 下面两个轴经过安装座姿态变换后分别对应世界 X、Y。 -->
+      <joint name="hand_x" type="slide" axis="-0.341932 0 -0.939723" range="-0.20 0.20" damping="2"/>
+      <joint name="hand_y" type="slide" axis="0.939723 0 -0.341932" range="-0.20 0.20" damping="2"/>
       <geom name="tetheria_mount_visual" pos="0.04 0.01 -0.012" quat="0.4085 -0.5730 0.5730 -0.4085" class="visual"
         mesh="tetheria_mount"/>
       <geom name="tetheria_mount_collision_0" size="0.002 0.025 0.005" pos="0.0405 0.02 0.009"
@@ -811,7 +815,9 @@
     <position name="right_thumb_A_cmc_abd" joint="right_thumb_cmc_abd" class="thumb_cmc" kp="1"/>
     <position name="right_th1_A_tendon" tendon="th_tendon1" ctrlrange="0.026152 0.038389" kp="10000"/>
     <position name="right_th2_A_tendon" tendon="th_tendon2" ctrlrange="0.081568 0.112138" kp="10000"/>
-    <position name="hand_lift_A" joint="hand_lift" ctrlrange="0 0.25" kp="500"/>
+    <position name="hand_lift_A" joint="hand_lift" ctrlrange="-0.15 0.15" kp="50000"/>
+    <position name="hand_x_A" joint="hand_x" ctrlrange="-0.20 0.20" kp="50000"/>
+    <position name="hand_y_A" joint="hand_y" ctrlrange="-0.20 0.20" kp="50000"/>
   </actuator>
 
   <!-- 传感器：记录六根腱的长度和拇指外展关节位置。 -->
@@ -834,6 +840,10 @@
     <joint joint1="right_thumb_mcp" joint2="right_thumb_ip"/>
   </equality>
 </mujoco>
+
+
+
+
 
 
 
